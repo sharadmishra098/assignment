@@ -19,7 +19,7 @@ def create_schedule():
 def update_schedule():
     request_data = request.get_json()
     try:
-        return_value = create_rule(
+        return_value = update_rule(
             request_data['schedule_name'],
             request_data['instance'],
             request_data['days'],
