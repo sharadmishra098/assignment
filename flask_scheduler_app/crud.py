@@ -66,7 +66,7 @@ def configure_rule(rule_name, cron, status, instance):
 
 def create_rule(schedule_name, instance, days, status):
     """
-    creating the scheduling event
+    creating the scheduling event. This crteates two events to start and stop the instance.
     """
     total_days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
     incoming_days = days
@@ -84,7 +84,7 @@ def create_rule(schedule_name, instance, days, status):
 
     if status == 'start':
         # creating cron job expression
-        cron = "* * ? * {} *".format(in_cron_days)
+        cron = "0/5 * ? * {} *".format(in_cron_days)
         configure_rule(rule_name_start, cron, status, instance)
 
         # creating rule for remaining days to stop the instance.
