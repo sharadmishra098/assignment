@@ -1,4 +1,4 @@
-# Flask Toy Project
+# EC2 instance scheduler Flask CRUD app
 An EC2 instance scheduler CRUD application flask.
 
 ## Built Using
