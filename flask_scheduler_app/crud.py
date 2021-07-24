@@ -30,11 +30,16 @@ lambda_name = "schedule_ec2_instances"
 fn_arn = "arn:aws:lambda:ap-south-1:739746980233:function:schedule_ec2_instances"
 
 def configure_rule(rule_name, cron, status, instance):
+    """
+    function to configure the rule for scheduling events
+    """
     rule_res = events_client.put_rule(
         Name=rule_name,
         ScheduleExpression='cron({})'.format(cron),
         State='ENABLED',
     )
+
+    # adding lambda trigger event
     lambda_client.add_permission(
         FunctionName=lambda_name,
         StatementId="{0}-Event".format(rule_name),
@@ -46,6 +51,8 @@ def configure_rule(rule_name, cron, status, instance):
         "status": status,
         "instance": instance
     }
+
+    # target lambda for the event
     events_client.put_targets(
         Rule=rule_name,
         Targets=[
@@ -58,6 +65,9 @@ def configure_rule(rule_name, cron, status, instance):
     )
 
 def create_rule(schedule_name, instance, days, status):
+    """
+    creating the scheduling event
+    """
     total_days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
     incoming_days = days
     in_cron_days = ",".join(incoming_days)
@@ -73,12 +83,17 @@ def create_rule(schedule_name, instance, days, status):
             return "Schedule name already used. Use different name"
 
     if status == 'start':
-        cron = "0/5 * ? * {} *".format(in_cron_days)
+        # creating cron job expression
+        cron = "* * ? * {} *".format(in_cron_days)
         configure_rule(rule_name_start, cron, status, instance)
+
+        # creating rule for remaining days to stop the instance.
         if len(remaining_days) > 0:
             cron = "* * ? * {} *".format(rem_cron_days)
             status = 'stop'
             configure_rule(rule_name_stop, cron, status, instance)
+
+        # adding tag in ec2 instance
         if 'id' in instance:
             response = ec2_client.create_tags(
                 DryRun=False,
@@ -108,6 +123,8 @@ def create_rule(schedule_name, instance, days, status):
     elif status == 'stop':
         cron = "* * ? * {} *".format(in_cron_days)
         configure_rule(rule_name_stop, cron, status, instance)
+
+        # creating rule for remaining days to start the instance.
         if len(remaining_days) > 0:
             cron = "* * ? * {} *".format(rem_cron_days)
             status = 'start'
@@ -143,6 +160,9 @@ def create_rule(schedule_name, instance, days, status):
 
 
 def update_rule(schedule_name, instance, days, status):
+    """
+    function to update the schedule. If schedule exists, it will update.
+    """
     total_days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
     incoming_days = days
     in_cron_days = ",".join(incoming_days)
@@ -156,6 +176,7 @@ def update_rule(schedule_name, instance, days, status):
     if status == 'start':
         cron = "* * ? * {} *".format(in_cron_days)
         for rule in existing_rules['Rules']:
+            # checking for existing schedule.
             if rule['Name'] == rule_name_start:
                 rule_res = events_client.put_rule(
                     Name=rule_name_start,
@@ -177,6 +198,7 @@ def update_rule(schedule_name, instance, days, status):
     elif status == 'stop':
         cron = "* * ? * {} *".format(in_cron_days)
         for rule in existing_rules['Rules']:
+            # checking for existing schedule.
             if rule['Name'] == rule_name_stop:
                 rule_res = events_client.put_rule(
                     Name=rule_name_stop,
@@ -200,7 +222,9 @@ def update_rule(schedule_name, instance, days, status):
 
 
 def delete_rule(schedule_name, instance):
-    exists = 0
+    """
+    function to delete the schedule
+    """
     existing_rules = events_client.list_rules()
     for name in existing_rules['Rules']:
         response = events_client.remove_targets(
@@ -248,6 +272,9 @@ def delete_rule(schedule_name, instance):
 
 
 def fetch_schedules():
+    """
+    function to read the existing shedules.
+    """
     res = events_client.list_rules()
     if 'Rules' in res:
         return res['Rules']
